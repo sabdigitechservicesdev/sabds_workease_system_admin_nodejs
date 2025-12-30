@@ -1,6 +1,6 @@
 import { body } from 'express-validator';
 
-export const registerValidator = [
+export const SystemRegisterValidator = [
   body('admin_name')
     .trim()
     .notEmpty().withMessage('Admin name is required')
@@ -46,7 +46,7 @@ export const registerValidator = [
     .matches(/^\d{6}$/).withMessage('Invalid pincode format')
 ];
 
-export const loginValidator = [
+export const SystemLoginValidator = [
   body('identifier')
     .notEmpty().withMessage('Email or username is required')
     .custom(value => {
@@ -66,7 +66,6 @@ export const loginValidator = [
 
 
 export default {
-  registerValidator,
-  loginValidator,
-
+  SystemRegisterValidator,
+  SystemLoginValidator,
 };

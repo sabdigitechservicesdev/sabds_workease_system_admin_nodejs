@@ -1,12 +1,8 @@
   import express from 'express';
   import rateLimit from 'express-rate-limit';
-  import AuthController from '../controllers/authControllers.js';
-  import { authenticateToken, authorizeRoles } from '../middleware/authMiddleware.js';
-  import { 
-    registerValidator, 
-    loginValidator, 
-  
-  } from '../validators/authValidators.js';
+  import SystemAuthController from '../controllers/systemAuthControllers.js';
+  import { authenticateToken, systemAuthorizeRoles } from '../middleware/systemAuthMiddleware.js';
+  import { SystemRegisterValidator, SystemLoginValidator, } from '../validators/systemAuthValidators.js';
   import validateRequest from '../middleware/validationMiddleware.js';
 
   const router = express.Router();
@@ -22,34 +18,34 @@
   // Public routes
   router.post('/register', 
     authLimiter,
-    registerValidator,
+    SystemRegisterValidator,
     validateRequest,
-    AuthController.register
+    SystemAuthController.register
   );
 
   router.post('/login',
     authLimiter,
-    loginValidator,
+    SystemLoginValidator,
     validateRequest,
-    AuthController.login
+    SystemAuthController.login
   );
 
 
   // Protected routes
   router.get('/profile',
     authenticateToken,
-    AuthController.getProfile
+    SystemAuthController.getProfile
   );
 
   router.post('/logout',
     authenticateToken,
-    AuthController.logout
+    SystemAuthController.logout
   );
 
   // Admin only route example
   router.get('/admin-only',
     authenticateToken,
-    authorizeRoles('SA', 'AD'),
+    systemAuthorizeRoles('SA', 'AD'),
     (req, res) => {
       res.json({
         success: true,

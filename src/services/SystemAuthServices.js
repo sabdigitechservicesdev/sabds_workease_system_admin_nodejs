@@ -1,9 +1,9 @@
-import { Admin, AdminCredentials, AdminAddress } from "../models/index.js"
+import { SystemAdminDetails, SystemAdminCredentials, SystemAdminAddress } from "../models/index.js"
 import TokenService from'./tokenService.js';
 import pool from '../config/database.js';
 
 
-class AuthService {
+class SystemAuthService {
   static async register(adminData) {
     const {
       admin_name, first_name, middle_name, last_name, email,
@@ -11,13 +11,13 @@ class AuthService {
     } = adminData;
 
     // Check if email already exists
-    const existingAdmin = await Admin.findByEmail(email);
+    const existingAdmin = await SystemAdminDetails.findByEmail(email);
     if (existingAdmin) {
       throw new Error('Email already registered');
     }
 
     // Check if admin_name already exists
-    const existingAdminName = await Admin.findByAdminName(admin_name);
+    const existingAdminName = await SystemAdminDetails.findByAdminName(admin_name);
     if (existingAdminName) {
       throw new Error('Admin name already taken');
     }
@@ -32,7 +32,7 @@ const connection = await pool.getConnection();
       await connection.beginTransaction();
 
       // Create admin details
-      const adminResult = await Admin.create({
+      const adminResult = await SystemAdminDetails.create({
         admin_name,
         first_name,
         middle_name,
@@ -44,7 +44,7 @@ const connection = await pool.getConnection();
       const adminId = adminResult.adminId;
 
       // Create credentials
-      await AdminCredentials.create(adminId, {
+      await SystemAdminCredentials.create(adminId, {
         admin_name,
         email,
         password: hashedPassword
@@ -52,7 +52,7 @@ const connection = await pool.getConnection();
 
       // Create address if provided
       if (area && city && state && pincode) {
-        await AdminAddress.create(adminId, {
+        await SystemAdminAddress.create(adminId, {
           area, city, state, pincode
         });
       }
@@ -83,7 +83,7 @@ const connection = await pool.getConnection();
 
 static async login(identifier, password) {
 
-  const admin = await Admin.findByLoginIdentifier(identifier);
+  const admin = await SystemAdminDetails.findByLoginIdentifier(identifier);
 
   // 1️⃣ User not found OR soft deleted
   if (!admin || admin.is_deleted === 1) {
@@ -160,7 +160,7 @@ static async login(identifier, password) {
 //     }
 
 //     // Verify admin still exists and is active
-//     const admin = await Admin.findById(decoded.adminId);
+//     const admin = await SystemAdminDetails.findById(decoded.adminId);
     
 //     if (!admin) {
 //       throw new Error('User not found');
@@ -185,7 +185,7 @@ static async login(identifier, password) {
 //   }
 
   static async getProfile(adminId) {
-    const admin = await Admin.findById(adminId);
+    const admin = await SystemAdminDetails.findById(adminId);
     
     if (!admin) {
       throw new Error('User not found');
@@ -214,4 +214,4 @@ static async login(identifier, password) {
   }
 }
 
-export default AuthService;
+export default SystemAuthService;

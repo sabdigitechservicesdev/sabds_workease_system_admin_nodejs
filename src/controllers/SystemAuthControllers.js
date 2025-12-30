@@ -1,9 +1,9 @@
-  import  AuthService from '../services/authServices.js';
+  import  SystemAuthService from '../services/systemAuthServices.js';
 
-  class AuthController {
+  class SystemAuthController {
     static async register(req, res) {
       try {
-        const result = await AuthService.register(req.body);
+        const result = await SystemAuthService.register(req.body);
         
         return res.status(201).json({
           success: true,
@@ -32,7 +32,7 @@
     try {
       const { identifier, password } = req.body;
 
-      const result = await AuthService.login(identifier, password);
+      const result = await SystemAuthService.login(identifier, password);
 
       return res.status(200).json(result);
 
@@ -62,7 +62,7 @@
 
     static async getProfile(req, res) {
       try {
-        const profile = await AuthService.getProfile(req.user.adminId);
+        const profile = await SystemAuthService.getProfile(req.user.adminId);
         
         return res.status(200).json({
           success: true,
@@ -97,4 +97,4 @@
     }
   }
 
-  export default AuthController;
+  export default SystemAuthController;
