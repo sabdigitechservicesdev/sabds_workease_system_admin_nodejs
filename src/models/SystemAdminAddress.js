@@ -1,11 +1,11 @@
 import pool from '../config/database.js';
 
-class AdminAddress {
+class SystemAdminAddress {
   static async create(adminId, addressData) {
     const { area, city, state, pincode } = addressData;
     
     const [result] = await pool.execute(
-      `INSERT INTO admin_address (admin_id, area, city, state, pincode) 
+      `INSERT INTO system_admin_address (admin_id, area, city, state, pincode) 
        VALUES (?, ?, ?, ?, ?)`,
       [adminId, area, city, state, pincode]
     );
@@ -15,4 +15,4 @@ class AdminAddress {
 }
 
 // ✅ ADD THIS:
-export default AdminAddress;
+export default SystemAdminAddress;

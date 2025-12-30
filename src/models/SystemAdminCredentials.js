@@ -1,11 +1,11 @@
 import pool from '../config/database.js';
 
-class AdminCredentials {
+class SystemAdminCredentials {
   static async create(adminId, credentials) {
     const { admin_name, email, password } = credentials;
     
     const [result] = await pool.execute(
-      `INSERT INTO admin_credentials (admin_id, admin_name, email, password) 
+      `INSERT INTO system_admin_credentials (admin_id, admin_name, email, password) 
        VALUES (?, ?, ?, ?)`,
       [adminId, admin_name, email, password]
     );
@@ -15,7 +15,7 @@ class AdminCredentials {
 
   static async updatePassword(adminId, hashedPassword) {
     const [result] = await pool.execute(
-      `UPDATE admin_credentials SET password = ?, updated_at = CURRENT_TIMESTAMP 
+      `UPDATE system_admin_credentials SET password = ?, updated_at = CURRENT_TIMESTAMP 
        WHERE admin_id = ?`,
       [hashedPassword, adminId]
     );
@@ -25,7 +25,7 @@ class AdminCredentials {
 
   static async findByAdminId(adminId) {
     const [rows] = await pool.execute(
-      `SELECT * FROM admin_credentials WHERE admin_id = ?`,
+      `SELECT * FROM system_admin_credentials WHERE admin_id = ?`,
       [adminId]
     );
     return rows[0];
@@ -33,4 +33,4 @@ class AdminCredentials {
 }
 
 // ✅ ADD THIS:
-export default AdminCredentials;
+export default SystemAdminCredentials;

@@ -16,7 +16,7 @@ router.get('/admin-roles', async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT id, role_name, role_code 
-       FROM admin_roles 
+       FROM system_admin_roles 
        ORDER BY id ASC`
     );
 

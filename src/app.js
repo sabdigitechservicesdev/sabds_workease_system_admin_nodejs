@@ -5,8 +5,7 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 dotenv.config();
 
-import authRoutes from './routes/authRoutes.js';
-import userRoutes from './routes/userRoutes.js';
+import SystemAuthRoutes from './routes/systemAuthRoutes.js';
 import { errorHandler } from './utils/errorHandler.js';
 import peakListRoutes from './routes/pickListRoutes.js'
 
@@ -57,8 +56,7 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/peak-list', peakListRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
+app.use('/api/system-admin/auth', SystemAuthRoutes);
 
 // ✅ FIX: 404 handler - Use a function instead of '*'
 app.use((req, res, next) => {
