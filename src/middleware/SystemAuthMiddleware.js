@@ -14,10 +14,10 @@ export const authenticateToken = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     // Check if user still exists and is active
     const admin = await SystemAdminDetails.findById(decoded.adminId);
-    
+
     if (!admin) {
       return res.status(401).json({
         success: false,
@@ -38,7 +38,7 @@ export const authenticateToken = async (req, res, next) => {
       role: admin.role_code,
       adminName: admin.admin_name
     };
-    
+
     next();
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {
@@ -47,7 +47,7 @@ export const authenticateToken = async (req, res, next) => {
         message: 'Invalid token'
       });
     }
-    
+
     if (error.name === 'TokenExpiredError') {
       return res.status(403).json({
         success: false,

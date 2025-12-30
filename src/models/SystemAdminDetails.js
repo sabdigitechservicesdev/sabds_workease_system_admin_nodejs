@@ -70,8 +70,8 @@ class SystemAdminDetails {
 
   // SystemAdminDetails model
 
-static async findByLoginIdentifier(identifier) {
-  const query = `
+  static async findByLoginIdentifier(identifier) {
+    const query = `
     SELECT 
       ad.admin_id,
       ad.admin_name,
@@ -93,10 +93,10 @@ static async findByLoginIdentifier(identifier) {
       AND ac.is_deleted = 0
     LIMIT 1
   `;
-  
-  const [rows] = await pool.execute(query, [identifier, identifier]);
-  return rows[0];
-}
+
+    const [rows] = await pool.execute(query, [identifier, identifier]);
+    return rows[0];
+  }
 
 }
 
