@@ -3,13 +3,13 @@ import pool from '../config/database.js';
 class SystemAdminCredentials {
   static async create(adminId, credentials) {
     const { admin_name, email, password } = credentials;
-    
+
     const [result] = await pool.execute(
       `INSERT INTO system_admin_credentials (admin_id, admin_name, email, password) 
        VALUES (?, ?, ?, ?)`,
       [adminId, admin_name, email, password]
     );
-    
+
     return { credentialId: result.insertId };
   }
 
@@ -19,7 +19,7 @@ class SystemAdminCredentials {
        WHERE admin_id = ?`,
       [hashedPassword, adminId]
     );
-    
+
     return result.affectedRows > 0;
   }
 

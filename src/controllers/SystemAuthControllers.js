@@ -1,32 +1,32 @@
-  import  SystemAuthService from '../services/systemAuthServices.js';
+import SystemAuthService from '../services/systemAuthServices.js';
 
-  class SystemAuthController {
-    static async register(req, res) {
-      try {
-        const result = await SystemAuthService.register(req.body);
-        
-        return res.status(201).json({
-          success: true,
-          message: 'Registration successful',
-          data: result.data
-        });
-      } catch (error) {
-        console.error('Registration error:', error);
-        
-        if (error.message.includes('already')) {
-          return res.status(409).json({
-            success: false,
-            message: error.message
-          });
-        }
+class SystemAuthController {
+  static async register(req, res) {
+    try {
+      const result = await SystemAuthService.register(req.body);
 
-        return res.status(500).json({
+      return res.status(201).json({
+        success: true,
+        message: 'Registration successful',
+        data: result.data
+      });
+    } catch (error) {
+      console.error('Registration error:', error);
+
+      if (error.message.includes('already')) {
+        return res.status(409).json({
           success: false,
-          message: 'Registration failed',
-          error: process.env.NODE_ENV === 'development' ? error.message : undefined
+          message: error.message
         });
       }
+
+      return res.status(500).json({
+        success: false,
+        message: 'Registration failed',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
     }
+  }
 
   static async login(req, res) {
     try {
@@ -57,44 +57,23 @@
     }
   }
 
+  static async getProfile(req, res) {
+    try {
+      const profile = await SystemAuthService.getProfile(req.user.adminId);
 
+      return res.status(200).json({
+        success: true,
+        data: profile
+      });
+    } catch (error) {
+      console.error('Get profile error:', error);
 
-
-    static async getProfile(req, res) {
-      try {
-        const profile = await SystemAuthService.getProfile(req.user.adminId);
-        
-        return res.status(200).json({
-          success: true,
-          data: profile
-        });
-      } catch (error) {
-        console.error('Get profile error:', error);
-        
-        return res.status(500).json({
-          success: false,
-          message: 'Failed to fetch profile'
-        });
-      }
-    }
-
-    static async logout(req, res) {
-      try {
-        // In a real implementation, you might want to blacklist the token
-        // For now, we'll just return success
-        return res.status(200).json({
-          success: true,
-          message: 'Logout successful'
-        });
-      } catch (error) {
-        console.error('Logout error:', error);
-        
-        return res.status(500).json({
-          success: false,
-          message: 'Logout failed'
-        });
-      }
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to fetch profile'
+      });
     }
   }
+}
 
-  export default SystemAuthController;
+export default SystemAuthController;
