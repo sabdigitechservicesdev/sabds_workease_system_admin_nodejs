@@ -183,35 +183,75 @@ class SystemAuthService {
   //       tokenType: 'Bearer'
   //     };
   //   }
+// SystemAuthService.js - add this method
+static async forgotPassword(email, newPassword) {
+  const connection = await pool.getConnection();
+  
+  try {
+    await connection.beginTransaction();
 
-  static async getProfile(adminId) {
-    const admin = await SystemAdminDetails.findById(adminId);
+    // 1️⃣ Check if user exists and get details with join
+    const [users] = await connection.execute(
+      `SELECT 
+        ad.admin_id,
+        ad.status_code,
+        ac.is_deleted,
+        ac.is_deactivated
+       FROM system_admin_details ad
+       JOIN system_admin_credentials ac ON ac.admin_id = ad.admin_id
+       WHERE ad.email = ?`,
+      [email]
+    );
 
-    if (!admin) {
+    const user = users[0];
+
+    // 2️⃣ Validate user existence and status
+    if (!user) {
       throw new Error('User not found');
     }
 
+    if (user.is_deleted === 1) {
+      throw new Error('Account is deleted');
+    }
+
+    if (user.is_deactivated === 1) {
+      throw new Error('Account is deactivated');
+    }
+
+    if (user.status_code !== 'ACT') {
+      throw new Error(`Account is not active`);
+    }
+
+    // 3️⃣ Hash the new password
+    const hashedPassword = await TokenService.hashPassword(newPassword);
+
+    // 4️⃣ Update password in credentials table
+    const [updateResult] = await connection.execute(
+      `UPDATE system_admin_credentials 
+       SET password = ?, updated_at = CURRENT_TIMESTAMP 
+       WHERE admin_id = ?`,
+      [hashedPassword, user.admin_id]
+    );
+
+    if (updateResult.affectedRows === 0) {
+      throw new Error('Failed to update password');
+    }
+
+    await connection.commit();
+
     return {
-      admin_id: admin.admin_id,
-      admin_name: admin.admin_name,
-      first_name: admin.first_name,
-      middle_name: admin.middle_name,
-      last_name: admin.last_name,
-      email: admin.email,
-      role: admin.role_code,
-      role_name: admin.role_name,
-      status: admin.status_code,
-      status_name: admin.status_name,
-      address: {
-        area: admin.area,
-        city: admin.city,
-        state: admin.state,
-        pincode: admin.pincode
-      },
-      created_at: admin.created_at,
-      updated_at: admin.updated_at
+      success: true,
+      message: 'Password reset successful'
     };
+
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
   }
+}
+
 }
 
 export default SystemAuthService;

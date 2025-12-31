@@ -89,35 +89,51 @@ class SystemAuthController {
     }
   }
 
-  static async getProfile(req, res) {
-    try {
-      const profile = await SystemAuthService.getProfile(req.user.adminId);
-
-      // Remove tokens from profile data if they exist
-      let profileData = profile;
-      if (profile?.tokens) {
-        const { tokens, ...profileWithoutTokens } = profile;
-        profileData = profileWithoutTokens;
-      }
-
-      // Always include all fields even if null
-      const response = {
-        status: 1,
-        message: 'Profile fetched successfully',
-        error: null,
-        data: profileData,
-        token: null
-      };
-
-      return res.status(200).json(response);
-    } catch (error) {
-      console.error('Get profile error:', error);
-
-      return res.status(500).json(
-        errorResponse('Failed to fetch profile', process.env.NODE_ENV === 'development' ? error.message : null, null)
+  // SystemAuthController.js - add this method
+static async forgotPassword(req, res) {
+  try {
+    const { email, new_password } = req.body;
+    
+    if (!email || !new_password) {
+      return res.status(400).json(
+        errorResponse('Email and new password are required', null, null)
       );
     }
+
+    const result = await SystemAuthService.forgotPassword(email, new_password);
+
+    const response = {
+      status: 1,
+      message: result.message,
+      error: null,
+      data: null
+    };
+
+    return res.status(200).json(response);
+  } catch (error) {
+    console.error('Forgot password error:', error.message);
+
+    let statusCode = 500;
+    let errorMessage = 'Password reset failed';
+    let technicalError = process.env.NODE_ENV === 'development' ? error.message : null;
+
+    if (error.message === 'User not found' || 
+        error.message === 'Account is deactivated' ||
+        error.message === 'Account is deleted') {
+      statusCode = 404;
+      errorMessage = error.message;
+    } else if (error.message.includes('not active')) {
+      statusCode = 403;
+      errorMessage = error.message;
+    }
+
+    return res.status(statusCode).json(
+      errorResponse(errorMessage, technicalError, null)
+    );
   }
+}
+
+
 }
 
 export default SystemAuthController;

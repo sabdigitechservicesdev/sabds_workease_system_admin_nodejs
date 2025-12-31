@@ -10,7 +10,7 @@ class SystemAdminDetails {
        LEFT JOIN system_admin_credentials ac ON ad.admin_id = ac.admin_id
        LEFT JOIN system_admin_roles ar ON ad.role_code = ar.role_code
        LEFT JOIN status as2 ON ad.status_code = as2.status_code
-       WHERE ad.email = ?`,
+       WHERE ad.email = ?`, 
       [email]
     );
     return rows[0];

@@ -22,10 +22,10 @@ router.post('/login',
   SystemAuthController.login
 );
 
-// Protected routes
-router.get('/profile',
-  authenticateToken,
-  SystemAuthController.getProfile
-);
+
+router.post('/forgot-password', SystemAuthController.forgotPassword);
+
+
+
 
 export default router;
