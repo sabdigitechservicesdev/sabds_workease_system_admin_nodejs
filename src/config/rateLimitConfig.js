@@ -6,11 +6,11 @@ import rateLimit from 'express-rate-limit';
 
 // Rate limit configurations for different routes
 export const authRateLimiter = rateLimit({
-  windowMs: process.env.AUTH_RATE_LIMIT_WINDOW_MS 
-    ? parseInt(process.env.AUTH_RATE_LIMIT_WINDOW_MS) 
+  windowMs: process.env.AUTH_RATE_LIMIT_WINDOW_MS
+    ? parseInt(process.env.AUTH_RATE_LIMIT_WINDOW_MS)
     : 5 * 60 * 1000, // 5 minutes default
-  max: process.env.AUTH_RATE_LIMIT_MAX_REQUESTS 
-    ? parseInt(process.env.AUTH_RATE_LIMIT_MAX_REQUESTS) 
+  max: process.env.AUTH_RATE_LIMIT_MAX_REQUESTS
+    ? parseInt(process.env.AUTH_RATE_LIMIT_MAX_REQUESTS)
     : 5, // 5 requests per window
   message: {
     status: 0,
@@ -24,11 +24,11 @@ export const authRateLimiter = rateLimit({
 });
 
 export const apiRateLimiter = rateLimit({
-  windowMs: process.env.API_RATE_LIMIT_WINDOW_MS 
-    ? parseInt(process.env.API_RATE_LIMIT_WINDOW_MS) 
+  windowMs: process.env.API_RATE_LIMIT_WINDOW_MS
+    ? parseInt(process.env.API_RATE_LIMIT_WINDOW_MS)
     : 15 * 60 * 1000, // 15 minutes default
-  max: process.env.API_RATE_LIMIT_MAX_REQUESTS 
-    ? parseInt(process.env.API_RATE_LIMIT_MAX_REQUESTS) 
+  max: process.env.API_RATE_LIMIT_MAX_REQUESTS
+    ? parseInt(process.env.API_RATE_LIMIT_MAX_REQUESTS)
     : 100, // 100 requests per window
   message: {
     status: 0,
@@ -42,11 +42,11 @@ export const apiRateLimiter = rateLimit({
 });
 
 export const publicRateLimiter = rateLimit({
-  windowMs: process.env.PUBLIC_RATE_LIMIT_WINDOW_MS 
-    ? parseInt(process.env.PUBLIC_RATE_LIMIT_WINDOW_MS) 
+  windowMs: process.env.PUBLIC_RATE_LIMIT_WINDOW_MS
+    ? parseInt(process.env.PUBLIC_RATE_LIMIT_WINDOW_MS)
     : 60 * 60 * 1000, // 1 hour default
-  max: process.env.PUBLIC_RATE_LIMIT_MAX_REQUESTS 
-    ? parseInt(process.env.PUBLIC_RATE_LIMIT_MAX_REQUESTS) 
+  max: process.env.PUBLIC_RATE_LIMIT_MAX_REQUESTS
+    ? parseInt(process.env.PUBLIC_RATE_LIMIT_MAX_REQUESTS)
     : 1000, // 1000 requests per window
   message: {
     status: 0,
