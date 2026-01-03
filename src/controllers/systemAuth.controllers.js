@@ -1,4 +1,5 @@
 import systemAuthService from '../services/systemAuth.services.js';
+import OTPService from '../services/otp.service.js';
 import { errorResponse } from '../utils/responseFormatter.js';
 
 class systemAuthController {
@@ -132,7 +133,6 @@ class systemAuthController {
     }
   }
 
-  // SIMPLIFIED OTP METHODS
   static async sendOTP(req, res) {
     try {
       const { identifier } = req.body;
@@ -143,7 +143,16 @@ class systemAuthController {
         );
       }
 
-      const result = await systemAuthService.sendOTP(identifier);
+      // Log the User-Agent for debugging
+      const userAgent = req.headers['user-agent'] || 'No User-Agent';
+      console.log('User-Agent Header:', userAgent);
+      console.log('All Headers:', req.headers);
+
+      // Extract device info from request
+      const deviceInfo = OTPService.extractDeviceInfo(req);
+      console.log('Extracted Device Info:', deviceInfo);
+
+      const result = await systemAuthService.sendOTP(identifier, deviceInfo);
 
       const response = {
         status: 1,
@@ -151,6 +160,7 @@ class systemAuthController {
         error: null,
         data: {
           email: result.email,
+          deviceName: result.deviceName,
           expiresIn: parseInt(process.env.OTP_EXPIRY_MINUTES || 5),
           expiresInMinutes: parseInt(process.env.OTP_EXPIRY_MINUTES || 5)
         }
@@ -159,6 +169,7 @@ class systemAuthController {
       return res.status(200).json(response);
     } catch (error) {
       console.error('Send OTP error:', error.message);
+      console.error('Error Stack:', error.stack);
 
       let statusCode = 500;
       let errorMessage = 'Failed to send OTP';
@@ -204,7 +215,10 @@ class systemAuthController {
         );
       }
 
-      const result = await systemAuthService.verifyOTP(identifier, otp);
+      // Extract device info from request
+      const deviceInfo = OTPService.extractDeviceInfo(req);
+
+      const result = await systemAuthService.verifyOTP(identifier, otp, deviceInfo);
 
       const response = {
         status: 1,
@@ -214,7 +228,9 @@ class systemAuthController {
           adminId: result.adminId,
           email: result.email,
           verified: true,
-          verifiedAt: new Date().toISOString()
+          verifiedAt: new Date().toISOString(),
+          deviceId: result.deviceId,
+          deviceName: result.deviceName
         }
       };
 
@@ -226,7 +242,8 @@ class systemAuthController {
       let errorMessage = 'OTP verification failed';
       let technicalError = process.env.NODE_ENV === 'development' ? error.message : null;
 
-      if (error.message === 'Invalid or expired OTP') {
+      if (error.message === 'Invalid or expired OTP' ||
+        error.message.includes('was generated for')) {
         statusCode = 400;
         errorMessage = error.message;
       } else if (error.message === 'User not found') {

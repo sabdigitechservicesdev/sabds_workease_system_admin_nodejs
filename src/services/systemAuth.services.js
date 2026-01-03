@@ -173,7 +173,7 @@ class systemAuthService {
     // Hash new password and update
     const hashedPassword = await TokenService.hashPassword(newPassword);
     const connection = await pool.getConnection();
-    
+
     try {
       await connection.beginTransaction();
 
@@ -202,39 +202,58 @@ class systemAuthService {
     }
   }
 
-  static async sendOTP(identifier) {
-    // Find user by identifier (email or username)
-    const admin = await SystemAdminDetails.findByLoginIdentifier(identifier);
+  static async sendOTP(identifier, deviceInfo = null) {
+    try {
+      console.log('sendOTP called with:', { identifier, deviceInfo });
 
-    // Validate user exists and is active
-    if (!admin || admin.is_deleted === 1) {
-      throw new Error('User not found');
+      // Find user by identifier (email or username)
+      const admin = await SystemAdminDetails.findByLoginIdentifier(identifier);
+      console.log('Admin found:', admin ? 'Yes' : 'No');
+
+      // Validate user exists and is active
+      if (!admin || admin.is_deleted === 1) {
+        throw new Error('User not found');
+      }
+
+      if (admin.is_deactivated === 1) {
+        throw new Error('Account is deactivated');
+      }
+
+      if (admin.status_code !== 'ACT') {
+        throw new Error(`Account is ${admin.status_name.toLowerCase()}`);
+      }
+
+      console.log('Generating OTP...');
+      // Generate OTP with device info
+      const otpResult = await OTPService.generateOTP(admin.admin_id, admin.email, deviceInfo);
+      console.log('OTP generated successfully:', {
+        otp: otpResult.otp,
+        deviceId: otpResult.deviceId,
+        deviceName: otpResult.deviceName
+      });
+
+      console.log('Attempting to send email to:', admin.email);
+      // Send email with device info
+      await EmailService.sendOTP(admin.email, otpResult.otp, deviceInfo?.deviceName);
+      console.log('Email sent successfully');
+
+      return {
+        success: true,
+        message: 'OTP sent successfully',
+        adminId: admin.admin_id,
+        email: admin.email,
+        deviceId: otpResult.deviceId,
+        deviceName: otpResult.deviceName,
+        expiresIn: parseInt(process.env.OTP_EXPIRY_MINUTES || 5)
+      };
+    } catch (error) {
+      console.error('Error in sendOTP:', error.message);
+      console.error('Error stack:', error.stack);
+      throw error;
     }
-
-    if (admin.is_deactivated === 1) {
-      throw new Error('Account is deactivated');
-    }
-
-    if (admin.status_code !== 'ACT') {
-      throw new Error(`Account is ${admin.status_name.toLowerCase()}`);
-    }
-
-    // Generate OTP
-    const otp = await OTPService.generateOTP(admin.admin_id, admin.email);
-
-    // Send email
-    await EmailService.sendOTP(admin.email, otp);
-
-    return {
-      success: true,
-      message: 'OTP sent successfully',
-      adminId: admin.admin_id,
-      email: admin.email,
-      expiresIn: parseInt(process.env.OTP_EXPIRY_MINUTES || 5)
-    };
   }
 
-  static async verifyOTP(identifier, otp) {
+  static async verifyOTP(identifier, otp, deviceInfo = null) {
     // Find user by identifier
     const admin = await SystemAdminDetails.findByLoginIdentifier(identifier);
 
@@ -251,14 +270,16 @@ class systemAuthService {
       throw new Error(`Account is ${admin.status_name.toLowerCase()}`);
     }
 
-    // Verify OTP
-    const result = await OTPService.verifyOTP(admin.admin_id, admin.email, otp);
+    // Verify OTP with device info
+    const result = await OTPService.verifyOTP(admin.admin_id, admin.email, otp, deviceInfo);
 
     return {
       success: true,
-      message: 'OTP verified successfully',
+      message: result.message,
       adminId: admin.admin_id,
-      email: admin.email
+      email: admin.email,
+      deviceId: result.deviceId,
+      deviceName: result.deviceName
     };
   }
 }
