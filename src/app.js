@@ -5,10 +5,10 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 dotenv.config();
 
-import authRoutes from './routes/authRoutes.js';
-import userRoutes from './routes/userRoutes.js';
+import SystemAuthRoutes from './routes/systemAuth.routes.js';
 import { errorHandler } from './utils/errorHandler.js';
-import peakListRoutes from './routes/pickListRoutes.js'
+import peakListRoutes from './routes/pickList.routes.js'
+import profileRoutes from './routes/profile.routes.js';
 
 const app = express();
 
@@ -20,13 +20,13 @@ const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    
+
     const allowedOrigins = [
       'http://localhost:3000',
       'http://localhost:5173', // Vite dev server
       process.env.CORS_ORIGIN
     ].filter(Boolean);
-    
+
     if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
       callback(null, true);
     } else {
@@ -57,8 +57,9 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/peak-list', peakListRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
+app.use('/api/system-admin/auth', SystemAuthRoutes);
+app.use('/api/profile-details/',profileRoutes);
+
 
 // ✅ FIX: 404 handler - Use a function instead of '*'
 app.use((req, res, next) => {

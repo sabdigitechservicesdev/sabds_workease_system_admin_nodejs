@@ -1,5 +1,7 @@
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
+import OTPService from '../services/otp.service.js';
+
 dotenv.config();
 
 // Create the pool
@@ -16,7 +18,7 @@ const pool = mysql.createPool({
   keepAliveInitialDelay: 0
 });
 
-// Test connection (optional)
+// Test connection
 (async () => {
   try {
     const connection = await pool.getConnection();
@@ -27,6 +29,35 @@ const pool = mysql.createPool({
   }
 })();
 
+// OTP Cleanup Job - Remove expired OTPs based on config
+try {
+  // Parse cleanup interval from environment (default to 60 minutes)
+  const cleanupIntervalMinutes = parseInt(process.env.OTP_CLEANUP_INTERVAL_MINUTES) || 60;
+  const cleanupOnStartup = process.env.OTP_CLEANUP_ON_STARTUP !== 'false'; // default true
+
+  // Convert minutes to milliseconds
+  const cleanupIntervalMs = cleanupIntervalMinutes * 60 * 1000;
+
+  // Run cleanup on startup if enabled
+  if (cleanupOnStartup) {
+    OTPService.cleanExpiredOTPs().then(() => {
+      console.log(`✅ Initial OTP cleanup completed`);
+    }).catch(err => {
+      console.error('❌ Initial OTP cleanup failed:', err.message);
+    });
+  }
+
+  // Schedule regular cleanup
+  setInterval(() => {
+    OTPService.cleanExpiredOTPs().catch(err => {
+      console.error('❌ Scheduled OTP cleanup failed:', err.message);
+    });
+  }, cleanupIntervalMs);
+
+  console.log(`✅ OTP cleanup job scheduled (every ${cleanupIntervalMinutes} minutes)`);
+  console.log(`⏱️  Next cleanup in: ${cleanupIntervalMinutes} minutes`);
+} catch (error) {
+  console.error('❌ Failed to setup OTP cleanup job:', error.message);
+}
 
 export default pool;
-

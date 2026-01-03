@@ -1,6 +1,6 @@
 import { body } from 'express-validator';
 
-export const registerValidator = [
+export const SystemRegisterValidator = [
   body('admin_name')
     .trim()
     .notEmpty().withMessage('Admin name is required')
@@ -34,9 +34,6 @@ export const registerValidator = [
     .trim()
     .isLength({ max: 50 }).withMessage('Middle name too long'),
 
-  body('role_code')
-    .optional()
-    .isIn(['SA', 'AD']).withMessage('Invalid role code'),
 
   body('area').optional().trim(),
   body('city').optional().trim(),
@@ -46,7 +43,7 @@ export const registerValidator = [
     .matches(/^\d{6}$/).withMessage('Invalid pincode format')
 ];
 
-export const loginValidator = [
+export const SystemLoginValidator = [
   body('identifier')
     .notEmpty().withMessage('Email or username is required')
     .custom(value => {
@@ -66,7 +63,6 @@ export const loginValidator = [
 
 
 export default {
-  registerValidator,
-  loginValidator,
-
+  SystemRegisterValidator,
+  SystemLoginValidator,
 };

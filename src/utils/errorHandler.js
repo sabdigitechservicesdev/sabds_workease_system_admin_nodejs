@@ -20,7 +20,7 @@ export const errorHandler = (err, req, res, next) => {
   });
 };
 
-export default{
+export default {
   AppError,
   errorHandler
 };

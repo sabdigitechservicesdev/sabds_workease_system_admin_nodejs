@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken"
-import { Admin } from "../models/index.js"
+import { SystemAdminDetails } from "../models/index.js"
 
 export const authenticateToken = async (req, res, next) => {
   try {
@@ -14,10 +14,10 @@ export const authenticateToken = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     // Check if user still exists and is active
-    const admin = await Admin.findById(decoded.adminId);
-    
+    const admin = await SystemAdminDetails.findById(decoded.adminId);
+
     if (!admin) {
       return res.status(401).json({
         success: false,
@@ -38,7 +38,7 @@ export const authenticateToken = async (req, res, next) => {
       role: admin.role_code,
       adminName: admin.admin_name
     };
-    
+
     next();
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {
@@ -47,7 +47,7 @@ export const authenticateToken = async (req, res, next) => {
         message: 'Invalid token'
       });
     }
-    
+
     if (error.name === 'TokenExpiredError') {
       return res.status(403).json({
         success: false,
@@ -63,7 +63,7 @@ export const authenticateToken = async (req, res, next) => {
   }
 };
 
-export const authorizeRoles = (...allowedRoles) => {
+export const systemAuthorizeRoles = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({
@@ -86,5 +86,5 @@ export const authorizeRoles = (...allowedRoles) => {
 // ✅ Optional: Also export as default
 export default {
   authenticateToken,
-  authorizeRoles
+  systemAuthorizeRoles
 };

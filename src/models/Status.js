@@ -1,21 +1,21 @@
 import pool from '../config/database.js';
 
-class AdminRole {
+class Status {
   static async findAll() {
     const [rows] = await pool.execute(
-      `SELECT * FROM admin_roles`
+      `SELECT * FROM status`
     );
     return rows;
   }
 
-  static async findByCode(roleCode) {
+  static async findByCode(statusCode) {
     const [rows] = await pool.execute(
-      `SELECT * FROM admin_roles WHERE role_code = ?`,
-      [roleCode]
+      `SELECT * FROM status WHERE status_code = ?`,
+      [statusCode]
     );
     return rows[0];
   }
 }
 
 // ✅ ADD THIS:
-export default AdminRole;
+export default Status;
