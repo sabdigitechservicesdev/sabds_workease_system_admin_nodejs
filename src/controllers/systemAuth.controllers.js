@@ -135,128 +135,63 @@ class systemAuthController {
 
   static async sendOTP(req, res) {
     try {
-      const { identifier } = req.body;
+      const result = await systemAuthService.sendOTP(
+        req.body.identifier,
+        req.deviceInfo // Make sure you're passing device info from middleware
+      );
 
-      if (!identifier) {
-        return res.status(400).json(
-          errorResponse('Email or username is required', null, null)
-        );
-      }
-
-      // Log the User-Agent for debugging
-      const userAgent = req.headers['user-agent'] || 'No User-Agent';
-      console.log('User-Agent Header:', userAgent);
-      console.log('All Headers:', req.headers);
-
-      // Extract device info from request
-      const deviceInfo = OTPService.extractDeviceInfo(req);
-      console.log('Extracted Device Info:', deviceInfo);
-
-      const result = await systemAuthService.sendOTP(identifier, deviceInfo);
-
-      const response = {
+      return res.status(200).json({
         status: 1,
         message: result.message,
-        error: null,
         data: {
+          adminId: result.adminId,
           email: result.email,
-          deviceName: result.deviceName,
-          expiresIn: parseInt(process.env.OTP_EXPIRY_MINUTES || 5),
-          expiresInMinutes: parseInt(process.env.OTP_EXPIRY_MINUTES || 5)
+          processId: result.processId,
+          deviceId: result.deviceId,
+          deviceName: result.deviceName
         }
-      };
-
-      return res.status(200).json(response);
+      });
     } catch (error) {
-      console.error('Send OTP error:', error.message);
-      console.error('Error Stack:', error.stack);
-
-      let statusCode = 500;
-      let errorMessage = 'Failed to send OTP';
-      let technicalError = process.env.NODE_ENV === 'development' ? error.message : null;
-
-      if (error.message.includes('Please wait')) {
-        statusCode = 429;
-        errorMessage = error.message;
-      } else if (error.message.includes('Too many OTP attempts')) {
-        statusCode = 429;
-        errorMessage = error.message;
-      } else if (error.message === 'User not found') {
-        statusCode = 404;
-        errorMessage = error.message;
-      } else if (error.message.includes('Account is')) {
-        statusCode = 403;
-        errorMessage = error.message;
-      } else if (error.message === 'Failed to send OTP email') {
-        statusCode = 502;
-        errorMessage = 'Failed to send email. Please try again later.';
-      }
-
-      return res.status(statusCode).json(
-        errorResponse(errorMessage, technicalError, null)
-      );
+      console.error('Send OTP error:', error);
+      return res.status(400).json({
+        status: 0,
+        message: error.message || 'Failed to send OTP',
+        error: null,
+        data: null,
+        token: null
+      });
     }
   }
 
   static async verifyOTP(req, res) {
     try {
-      const { identifier, otp } = req.body;
+      const result = await systemAuthService.verifyOTP(
+        req.body.identifier,
+        req.body.otp,
+        req.body.processId,
+        req.deviceInfo // Make sure you're passing device info
+      );
 
-      if (!identifier || !otp) {
-        return res.status(400).json(
-          errorResponse('Identifier and OTP are required', null, null)
-        );
-      }
-
-      // Validate OTP format
-      if (!/^\d{6}$/.test(otp)) {
-        return res.status(400).json(
-          errorResponse('OTP must be exactly 6 digits', null, null)
-        );
-      }
-
-      // Extract device info from request
-      const deviceInfo = OTPService.extractDeviceInfo(req);
-
-      const result = await systemAuthService.verifyOTP(identifier, otp, deviceInfo);
-
-      const response = {
+      return res.status(200).json({
         status: 1,
         message: result.message,
-        error: null,
         data: {
           adminId: result.adminId,
           email: result.email,
-          verified: true,
-          verifiedAt: new Date().toISOString(),
-          deviceId: result.deviceId,
-          deviceName: result.deviceName
+          processId: result.processId
         }
-      };
-
-      return res.status(200).json(response);
+      });
     } catch (error) {
-      console.error('Verify OTP error:', error.message);
+      console.error('Verify OTP error:', error);
 
-      let statusCode = 400;
-      let errorMessage = 'OTP verification failed';
-      let technicalError = process.env.NODE_ENV === 'development' ? error.message : null;
-
-      if (error.message === 'Invalid or expired OTP' ||
-        error.message.includes('was generated for')) {
-        statusCode = 400;
-        errorMessage = error.message;
-      } else if (error.message === 'User not found') {
-        statusCode = 404;
-        errorMessage = error.message;
-      } else if (error.message.includes('Account is')) {
-        statusCode = 403;
-        errorMessage = error.message;
-      }
-
-      return res.status(statusCode).json(
-        errorResponse(errorMessage, technicalError, null)
-      );
+      // Return specific error messages
+      return res.status(400).json({
+        status: 0,
+        message: error.message || 'OTP verification failed',
+        error: null,
+        data: null,
+        token: null
+      });
     }
   }
 }
