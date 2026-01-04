@@ -5,15 +5,22 @@ class OTPService {
   constructor() {
     this.otpExpiryMinutes = parseInt(process.env.OTP_EXPIRY_MINUTES || 5);
     this.otpLength = parseInt(process.env.OTP_LENGTH) || 6;
-    this.maxAttempts = parseInt(process.env.OTP_MAX_ATTEMPTS) || 3;
+    this.maxAttempts = parseInt(process.env.OTP_MAX_ATTEMPTS) || 5;
+    this.maxVerificationAttempts = parseInt(process.env.OTP_MAX_VERIFICATION_ATTEMPTS) || 3;
     this.resendCooldown = parseInt(process.env.OTP_RESEND_COOLDOWN_SECONDS) || 60;
   }
 
-  // Generate unique process ID
+  // Generate process ID as HHMMSS (hours, minutes, seconds)
   generateProcessId() {
-    const timestamp = Date.now();
-    const random = crypto.randomBytes(8).toString('hex');
-    return `proc_${timestamp}_${random}`;
+    const now = new Date();
+
+    // Get hours, minutes, seconds
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+
+    // Format: HHMMSS
+    return `${hours}${minutes}${seconds}`;
   }
 
   // Extract device info from request headers
@@ -97,7 +104,7 @@ class OTPService {
       const [recentOTPs] = await connection.execute(
         `SELECT created_at FROM system_otps 
          WHERE admin_id = ? AND email = ? AND device_id = ?
-         AND is_verified = 0 AND expires_at > NOW()
+         AND is_verified = 0 AND is_valid = 1 AND expires_at > NOW()
          ORDER BY created_at DESC LIMIT 1`,
         [adminId, email, deviceId]
       );
@@ -116,24 +123,26 @@ class OTPService {
       const [deviceAttempts] = await connection.execute(
         `SELECT COUNT(*) as count FROM system_otps 
          WHERE admin_id = ? AND email = ? AND device_id = ?
-         AND created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)`,
+         AND created_at > DATE_SUB(NOW(), INTERVAL 5 MINUTE)
+         AND is_valid = 1`,
         [adminId, email, deviceId]
       );
 
       if (deviceAttempts[0].count >= this.maxAttempts) {
-        throw new Error('Too many OTP attempts from this device. Please try again later.');
+        throw new Error('Too many OTP attempts from this device. Please try again 5 minutes later.');
       }
 
       // Check global attempt count (all devices) in last hour
       const [globalAttempts] = await connection.execute(
         `SELECT COUNT(*) as count FROM system_otps 
          WHERE admin_id = ? AND email = ? 
-         AND created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)`,
+         AND created_at > DATE_SUB(NOW(), INTERVAL 5 MINUTE)
+         AND is_valid = 1`,
         [adminId, email]
       );
 
       if (globalAttempts[0].count >= this.maxAttempts * 3) {
-        throw new Error('Too many OTP attempts from all devices. Please try again later.');
+        throw new Error('Too many OTP attempts from all devices. Please try 5 minutes again later.');
       }
 
       // Insert new OTP with unique process ID
@@ -172,6 +181,7 @@ class OTPService {
       const [otpRecords] = await connection.execute(
         `SELECT * FROM system_otps 
        WHERE admin_id = ? AND email = ? AND process_id = ?
+       AND is_valid = 1
        ORDER BY created_at DESC LIMIT 1`,
         [adminId, email, processId]
       );
@@ -182,7 +192,7 @@ class OTPService {
 
       const otpRecord = otpRecords[0];
 
-      // Check if OTP is already verified
+      // Check if OTP is already verified (is_verified = 1)
       if (otpRecord.is_verified === 1) {
         throw new Error('This OTP has already been used. Please request a new OTP.');
       }
@@ -192,18 +202,48 @@ class OTPService {
       const expiresAt = new Date(otpRecord.expires_at);
 
       if (currentTime > expiresAt) {
+        // Mark OTP as invalid when expired
+        await connection.execute(
+          `UPDATE system_otps 
+         SET is_valid = 0 
+         WHERE id = ?`,
+          [otpRecord.id]
+        );
         throw new Error('OTP has expired. Please request a new OTP.');
       }
 
       // Now verify the OTP code
       if (otpRecord.otp_code !== otp) {
-        throw new Error('Invalid OTP code. Please check and try again.');
+        // Get current failed attempts and increment
+        const currentFailedAttempts = otpRecord.failed_attempts || 0;
+        const newFailedAttempts = currentFailedAttempts + 1;
+
+        // Use the environment variable value
+        if (newFailedAttempts >= this.maxVerificationAttempts) {
+          // Mark OTP as invalid after max failed attempts
+          await connection.execute(
+            `UPDATE system_otps 
+           SET is_valid = 0, failed_attempts = ?
+           WHERE id = ?`,
+            [newFailedAttempts, otpRecord.id]
+          );
+          throw new Error(`Too many failed attempts (${this.maxVerificationAttempts}). OTP has been invalidated. Please request a new OTP.`);
+        } else {
+          // Update failed attempts count
+          await connection.execute(
+            `UPDATE system_otps 
+           SET failed_attempts = ?
+           WHERE id = ?`,
+            [newFailedAttempts, otpRecord.id]
+          );
+          throw new Error(`Invalid OTP code. You have ${this.maxVerificationAttempts - newFailedAttempts} attempt(s) left.`);
+        }
       }
 
-      // OTP is valid - mark as verified
+      // OTP is valid - mark as verified and reset failed attempts
       await connection.execute(
         `UPDATE system_otps 
-       SET is_verified = 1, verified_at = NOW() 
+       SET is_verified = 1, verified_at = NOW(), failed_attempts = 0 
        WHERE id = ?`,
         [otpRecord.id]
       );
@@ -227,8 +267,11 @@ class OTPService {
   async cleanExpiredOTPs() {
     const connection = await pool.getConnection();
     try {
+      // Delete expired OTPs AND invalid OTPs (is_valid = 0)
       await connection.execute(
-        `DELETE FROM system_otps WHERE expires_at < NOW()`
+        `DELETE FROM system_otps 
+       WHERE expires_at < NOW() 
+       OR is_valid = 0`
       );
     } finally {
       connection.release();

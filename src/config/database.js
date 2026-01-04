@@ -31,8 +31,8 @@ const pool = mysql.createPool({
 
 // OTP Cleanup Job - Remove expired OTPs based on config
 try {
-  // Parse cleanup interval from environment (default to 60 minutes)
-  const cleanupIntervalMinutes = parseInt(process.env.OTP_CLEANUP_INTERVAL_MINUTES) || 60;
+  // Parse cleanup interval from environment (default to 5 minutes)
+  const cleanupIntervalMinutes = parseInt(process.env.OTP_CLEANUP_INTERVAL_MINUTES) || 5;
   const cleanupOnStartup = process.env.OTP_CLEANUP_ON_STARTUP !== 'false'; // default true
 
   // Convert minutes to milliseconds
