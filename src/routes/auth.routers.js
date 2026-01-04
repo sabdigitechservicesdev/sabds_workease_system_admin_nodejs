@@ -1,31 +1,30 @@
 // routes/systemAuth.routes.js
 import express from 'express';
 import { authRateLimiter } from '../config/rateLimitConfig.js';
-import systemAuthController from '../controllers/systemAuth.controllers.js';
-import { SystemRegisterValidator, SystemLoginValidator } from '../validators/systemAuth.validators.js';
 import { SendOTPValidator, VerifyOTPValidator } from '../validators/otp.validators.js';
 import validateRequest from '../middleware/validation.middleware.js';
 import deviceInfoMiddleware from '../middleware/deviceInfo.middleware.js';
+import authController from '../controllers/auth.controller.js';
 
 const router = express.Router();
 
-// Public routes with strict rate limiting
-router.post('/register',
+
+
+// Add deviceInfoMiddleware to OTP routes
+router.post('/send-otp',
   authRateLimiter,
-  SystemRegisterValidator,
+  deviceInfoMiddleware, 
+  SendOTPValidator,
   validateRequest,
-  systemAuthController.register
+  authController.sendOTP
 );
 
-router.post('/login',
+router.post('/verify-otp',
   authRateLimiter,
-  SystemLoginValidator,
+  deviceInfoMiddleware, 
+  VerifyOTPValidator,
   validateRequest,
-  systemAuthController.login
+  authController.verifyOTP
 );
-
-router.post('/forgot-password', systemAuthController.forgotPassword);
-
-
 
 export default router;
